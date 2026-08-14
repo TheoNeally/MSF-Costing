@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local metal space frame radome cost and pricing estimator">
+  <title>MSF Costing Tool</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-block">
+      <div class="brand-mark" aria-hidden="true">MSF</div>
+      <div>
+        <div class="brand-title">Radome Costing Tool</div>
+        <div class="brand-subtitle">Prototype quantity, cost, and pricing estimator</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="save-status" class="save-status">New estimate</span>
+      <button id="new-button" class="button button-quiet" type="button">New</button>
+      <button id="load-button" class="button button-quiet" type="button">Open</button>
+      <button id="print-button" class="button button-quiet" type="button">Print</button>
+      <button id="save-button" class="button button-primary" type="button">Save revision</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <nav class="section-nav" aria-label="Estimate sections">
+      <a href="#project-section">Project</a>
+      <a href="#geometry-section">Geometry</a>
+      <a href="#frame-section">Frame</a>
+      <a href="#membrane-section">Membrane</a>
+      <a href="#labor-section">Labor & installation</a>
+      <a href="#other-section">Other costs</a>
+      <a href="#pricing-section">Pricing</a>
+      <div class="nav-note">
+        <strong>Estimate class</strong>
+        <span>ROM / prototype</span>
+        <small>Approximate geometry and reference pricing are clearly identified in the results.</small>
+      </div>
+    </nav>
+
+    <form id="estimate-form" class="input-column" autocomplete="off">
+      <section id="project-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">01</span><h2>Project</h2></div>
+          <p>Identification and customer context.</p>
+        </div>
+        <div class="field-grid two-column">
+          <label class="field field-wide">
+            <span>Estimate name</span>
+            <input data-path="project.name" type="text" required>
+          </label>
+          <label class="field">
+            <span>Customer</span>
+            <input data-path="project.customer" type="text" placeholder="Customer or program">
+          </label>
+          <label class="field">
+            <span>Project type</span>
+            <select data-path="project.project_type">
+              <option value="DoD">DoD</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Internal R&D">Internal R&amp;D</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Estimator</span>
+            <input data-path="project.estimator" type="text">
+          </label>
+          <label class="field field-wide">
+            <span>Notes and scope</span>
+            <textarea data-path="project.notes" rows="3" placeholder="Scope, exclusions, site, design condition, or quote references"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section id="geometry-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">02</span><h2>Geometry</h2></div>
+          <p>Base angle is measured from the zenith axis to the truncation plane.</p>
+        </div>
+        <div class="field-grid three-column">
+          <label class="field">
+            <span>Sphere diameter</span>
+            <div class="input-unit"><input data-path="geometry.diameter_ft" type="number" min="0.01" step="0.1"><b>ft</b></div>
+          </label>
+          <label class="field">
+            <span>Base angle</span>
+            <div class="input-unit"><input data-path="geometry.base_angle_deg" type="number" min="0.01" max="179.99" step="0.001"><b>deg</b></div>
+          </label>
+          <label class="field">
+            <span>Geometry family</span>
+            <select data-path="geometry.geometry_type">
+              <option value="quasi-random">Quasi-random</option>
+              <option value="regular">Regular / small radome</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Total panels</span>
+            <input data-path="geometry.total_panels" type="number" min="1" step="1">
+          </label>
+          <label class="field">
+            <span>Base panels</span>
+            <input data-path="geometry.total_base_panels" type="number" min="0" step="1">
+          </label>
+          <div class="field output-field">
+            <span>Main repeating panels</span>
+            <output id="main-panel-count">—</output>
+          </div>
+          <label class="field">
+            <span>Unique main shapes</span>
+            <input data-path="geometry.unique_main_panels" type="number" min="0" step="1">
+          </label>
+          <label class="field">
+            <span>Unique base shapes</span>
+            <input data-path="geometry.unique_base_panels" type="number" min="0" step="1">
+          </label>
+          <label class="field">
+            <span>Exact membrane area</span>
+            <div class="input-unit"><input data-path="geometry.exact_membrane_area_sqft" type="number" min="0" step="1"><b>ft²</b></div>
+            <small>Leave at zero to use the spherical-cap approximation.</small>
+          </label>
+        </div>
+      </section>
+
+      <section id="frame-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">03</span><h2>Frame system</h2></div>
+          <p>Choose one costing method to avoid counting panel and beam quotes twice.</p>
+        </div>
+        <div class="field-grid three-column">
+          <label class="field field-wide">
+            <span>Frame cost method</span>
+            <select data-path="frame.cost_method" id="frame-method">
+              <option value="panel_set">Reference panel-frame set</option>
+              <option value="components">Beam and component build-up</option>
+            </select>
+          </label>
+        </div>
+        <div id="panel-set-fields" class="subsection">
+          <h3>Panel-set reference</h3>
+          <div class="field-grid three-column">
+            <label class="field">
+              <span>BK-1 frame set</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.panel_set_cost" type="number" min="0" step="10"></div>
+              <small>Complete frame, excluding membrane.</small>
+            </label>
+          </div>
+        </div>
+        <div id="component-fields" class="subsection" hidden>
+          <h3>Component build-up</h3>
+          <div class="field-grid three-column">
+            <label class="field">
+              <span>Beam set cost</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.beam_set_cost" type="number" min="0" step="10"></div>
+            </label>
+            <label class="field">
+              <span>Beam sets / panel</span>
+              <input data-path="frame.beam_sets_per_panel" type="number" min="0" step="0.1">
+            </label>
+            <label class="field">
+              <span>Fittings / panel</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.fittings_per_panel" type="number" min="0" step="10"></div>
+            </label>
+            <label class="field">
+              <span>Hardware / panel</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.hardware_per_panel" type="number" min="0" step="10"></div>
+            </label>
+            <label class="field">
+              <span>Frame fabrication / panel</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.fabrication_per_panel" type="number" min="0" step="10"></div>
+            </label>
+          </div>
+        </div>
+        <div class="subsection">
+          <h3>Scaling and non-recurring work</h3>
+          <div class="field-grid four-column">
+            <label class="field">
+              <span>Size factor</span>
+              <input data-path="frame.size_factor" type="number" min="0.01" step="0.05">
+            </label>
+            <label class="field">
+              <span>Beam-size factor</span>
+              <input data-path="frame.beam_factor" type="number" min="0.01" step="0.05">
+            </label>
+            <label class="field">
+              <span>Complexity factor</span>
+              <input data-path="frame.complexity_factor" type="number" min="0.01" step="0.05">
+            </label>
+            <label class="field">
+              <span>Setup / unique shape</span>
+              <div class="input-unit prefix"><b>$</b><input data-path="frame.setup_cost_per_unique" type="number" min="0" step="10"></div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section id="membrane-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">04</span><h2>Membrane</h2></div>
+          <p>Raw fabric and fabrication are kept separate.</p>
+        </div>
+        <div class="field-grid three-column">
+          <label class="field">
+            <span>Low fabric rate</span>
+            <div class="input-unit prefix"><b>$</b><input data-path="membrane.fabric_rate_low" type="number" min="0" step="0.25"><em>/ft²</em></div>
+          </label>
+          <label class="field emphasized-field">
+            <span>Base fabric rate</span>
+            <div class="input-unit prefix"><b>$</b><input data-path="membrane.fabric_rate_base" type="number" min="0" step="0.25"><em>/ft²</em></div>
+          </label>
+          <label class="field">
+            <span>High fabric rate</span>
+            <div class="input-unit prefix"><b>$</b><input data-path="membrane.fabric_rate_high" type="number" min="0" step="0.25"><em>/ft²</em></div>
+          </label>
+          <label class="field">
+            <span>Cutting waste</span>
+            <div class="input-unit"><input data-path="membrane.waste_pct" type="number" min="0" step="1"><b>%</b></div>
+          </label>
+          <label class="field">
+            <span>Faceting factor</span>
+            <input data-path="membrane.faceting_factor" type="number" min="0.01" step="0.01">
+          </label>
+          <label class="field">
+            <span>Fabrication / panel</span>
+            <div class="input-unit prefix"><b>$</b><input data-path="membrane.fabrication_per_panel" type="number" min="0" step="10"></div>
+            <small>Cut, seal, attach, and inspect.</small>
+          </label>
+        </div>
+      </section>
+
+      <section id="labor-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">05</span><h2>Labor and installation</h2></div>
+          <p>Zero values remain visible as exclusions in estimate warnings.</p>
+        </div>
+        <div class="subsection">
+          <h3>Engineering and shop</h3>
+          <div class="field-grid three-column">
+            <label class="field"><span>Base engineering hours</span><input data-path="labor.engineering_base_hours" type="number" min="0" step="1"></label>
+            <label class="field"><span>Hours / unique shape</span><input data-path="labor.engineering_hours_per_unique" type="number" min="0" step="0.5"></label>
+            <label class="field"><span>Engineering rate</span><div class="input-unit prefix"><b>$</b><input data-path="labor.engineering_rate" type="number" min="0" step="5"><em>/hr</em></div></label>
+            <label class="field"><span>Shop hours / panel</span><input data-path="labor.shop_hours_per_panel" type="number" min="0" step="0.25"></label>
+            <label class="field"><span>Shop setup hours / unique</span><input data-path="labor.shop_setup_hours_per_unique" type="number" min="0" step="0.25"></label>
+            <label class="field"><span>Burdened shop rate</span><div class="input-unit prefix"><b>$</b><input data-path="labor.shop_rate" type="number" min="0" step="5"><em>/hr</em></div></label>
+          </div>
+        </div>
+        <div class="subsection">
+          <h3>Field installation</h3>
+          <div class="field-grid four-column">
+            <label class="field"><span>Crew size</span><input data-path="labor.crew_size" type="number" min="0" step="1"></label>
+            <label class="field"><span>Panels / crew-day</span><input data-path="labor.panels_per_day" type="number" min="0" step="0.5"></label>
+            <label class="field"><span>Hours / day</span><input data-path="labor.hours_per_day" type="number" min="0" step="0.5"></label>
+            <label class="field"><span>Field rate / person</span><div class="input-unit prefix"><b>$</b><input data-path="labor.field_rate" type="number" min="0" step="5"><em>/hr</em></div></label>
+            <label class="field"><span>Equipment / day</span><div class="input-unit prefix"><b>$</b><input data-path="labor.equipment_per_day" type="number" min="0" step="50"></div></label>
+            <label class="field"><span>Mobilization</span><div class="input-unit prefix"><b>$</b><input data-path="labor.mobilization" type="number" min="0" step="100"></div></label>
+            <label class="field"><span>Fixed travel</span><div class="input-unit prefix"><b>$</b><input data-path="labor.travel_fixed" type="number" min="0" step="100"></div></label>
+            <label class="field"><span>Travel days</span><input data-path="labor.travel_days" type="number" min="0" step="1"></label>
+            <label class="field"><span>Per diem / person-day</span><div class="input-unit prefix"><b>$</b><input data-path="labor.per_diem" type="number" min="0" step="5"></div></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="other-section" class="form-card">
+        <div class="section-heading">
+          <div><span class="step">06</span><h2>Other costs</h2></div>
+          <p>Add named accessories and assign each to its cost stage.</p>
+        </div>
+        <div id="accessory-list" class="accessory-list"></div>
+        <button id="add-accessory" class="button button-secondary" type="button">+ Add accessory or allowance</button>
+        <div class="subsection">
+          <h3>Delivery and loaded-cost allowances</h3>
+          <div class="field-grid three-column">
+            <label class="field"><span>Packaging and freight</span><div class="input-unit prefix"><b>$</b><input data-path="other.packaging_freight" type="number" min="0" step="100"></div></label>
+            <label class="field"><span>Project management</span><div class="input-unit prefix"><b>$</b><input data-path="other.project_management" type="number" min="0" step="100"></div></label>
+            <label class="field"><span>Overhead</span><div class="input-unit"><input data-path="other.overhead_pct" type="number" min="0" step="0.5"><b>%</b></div></label>
+            <label class="field"><span>Warranty allowance</span><div class="input-unit"><input data-path="other.warranty_pct" type="number" min="0" step="0.5"><b>%</b></div></label>
+            <label class="field"><span>Contingency</span><div class="input-unit"><input data-path="other.contingency_pct" type="number" min="0" step="0.5"><b>%</b></div></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing-section" class="form-card pricing-card">
+        <div class="section-heading">
+          <div><span class="step">07</span><h2>Pricing</h2></div>
+          <p>Select the cost basis management wants to use.</p>
+        </div>
+        <div class="field-grid three-column">
+          <label class="field">
+            <span>Pricing cost basis</span>
+            <select data-path="pricing.basis">
+              <option value="manufacturing">Manufacturing</option>
+              <option value="delivered">Delivered</option>
+              <option value="installed">Installed</option>
+              <option value="fully_loaded">Fully loaded</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Pricing mode</span>
+            <select data-path="pricing.mode" id="pricing-mode">
+              <option value="target_margin">Calculate price from margin</option>
+              <option value="entered_price">Calculate margin from price</option>
+            </select>
+          </label>
+          <label id="target-margin-field" class="field">
+            <span>Target gross margin</span>
+            <div class="input-unit"><input data-path="pricing.target_margin_pct" type="number" min="0" max="99.99" step="0.5"><b>%</b></div>
+          </label>
+          <label id="entered-price-field" class="field" hidden>
+            <span>Entered selling price</span>
+            <div class="input-unit prefix"><b>$</b><input data-path="pricing.entered_price" type="number" min="0" step="100"></div>
+          </label>
+        </div>
+      </section>
+    </form>
+
+    <aside class="results-column" aria-live="polite">
+      <section class="result-hero">
+        <div class="result-label">Recommended selling price</div>
+        <div id="selling-price" class="hero-number">—</div>
+        <div class="hero-meta"><span id="basis-label">Fully loaded basis</span><span id="class-label">ROM</span></div>
+      </section>
+
+      <section class="metric-grid">
+        <div class="metric"><span>Selected cost</span><strong id="selected-cost">—</strong></div>
+        <div class="metric"><span>Gross margin</span><strong id="gross-margin">—</strong></div>
+        <div class="metric"><span>Gross profit</span><strong id="gross-profit">—</strong></div>
+        <div class="metric"><span>Markup</span><strong id="markup">—</strong></div>
+      </section>
+
+      <section id="messages-card" class="result-card">
+        <h2>Estimate checks</h2>
+        <div id="errors" class="message-list"></div>
+        <div id="warnings" class="message-list"></div>
+      </section>
+
+      <section class="result-card">
+        <h2>Fabric-rate range</h2>
+        <div class="scenario-row"><span>Low</span><strong id="scenario-low">—</strong></div>
+        <div class="scenario-row base"><span>Base</span><strong id="scenario-base">—</strong></div>
+        <div class="scenario-row"><span>High</span><strong id="scenario-high">—</strong></div>
+        <small>Fully loaded costs; the range currently varies raw fabric only.</small>
+      </section>
+
+      <section class="result-card">
+        <h2>Derived geometry</h2>
+        <dl class="result-list">
+          <div><dt>Radome height</dt><dd id="geo-height">—</dd></div>
+          <div><dt>Base diameter</dt><dd id="geo-base-diameter">—</dd></div>
+          <div><dt>Exact truncation</dt><dd id="geo-truncation">—</dd></div>
+          <div><dt>Spherical-cap area</dt><dd id="geo-shell-area">—</dd></div>
+          <div><dt>Purchased fabric</dt><dd id="geo-fabric-area">—</dd></div>
+          <div><dt>Average panel area</dt><dd id="geo-panel-area">—</dd></div>
+          <div><dt>Approx. panel edge</dt><dd id="geo-edge">—</dd></div>
+          <div><dt>Installation duration</dt><dd id="install-days">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="result-card breakdown-card">
+        <h2>Base cost breakdown</h2>
+        <div id="breakdown" class="breakdown"></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="load-dialog" class="load-dialog">
+    <div class="dialog-heading">
+      <div><h2>Saved revisions</h2><p>Opening an older revision does not change it. Saving creates a new revision.</p></div>
+      <button id="close-dialog" class="icon-button" type="button" aria-label="Close">×</button>
+    </div>
+    <div id="saved-estimates" class="saved-estimates"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
