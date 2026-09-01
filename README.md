@@ -39,6 +39,8 @@ python app.py --no-browser
 - Manufacturing, delivered, installed, and fully loaded cost bases
 - Price-from-margin and margin-from-price calculations
 - Low/base/high raw-fabric scenarios
+- Versioned rate library with per-rate source, effective date, and confidence
+- Rate change log and library-version stamp on every saved estimate
 - Immutable saved estimate revisions
 - Print-friendly internal estimate view
 
@@ -73,11 +75,58 @@ Loaded overhead, warranty, and contingency percentages share the same base:
 installed cost plus project management and fully-loaded-stage accessories. This
 keeps the build-up transparent and avoids compounding hidden percentages.
 
+## Rate library
+
+Every price, rate, factor, and percentage the tool starts from lives in
+`rates.json` at the project root, not in the calculation code. Each of the 36
+managed rates carries its own provenance:
+
+| Field | Meaning |
+| --- | --- |
+| `value` | The number used to seed new estimates |
+| `effective_date` | When this value took effect |
+| `source` | Quote number, vendor, job number, or data set |
+| `confidence` | `actual`, `quoted`, `benchmark`, `estimate`, or `placeholder` |
+| `review_by` | Optional date after which the rate is flagged as overdue |
+| `note` | Scope, exclusions, or validity window |
+
+Open the library with the **Rates** button. Editing a value there writes
+`rates.json`, increments the library version, and appends one record per
+changed rate to `rates_history.jsonl`, so "when did $8/ft² become $9.40, and
+why" stays answerable. A source is required whenever confidence is anything
+other than `placeholder`; a rejected batch leaves every rate untouched.
+
+Three layers stay deliberately separate:
+
+1. **The library** seeds new estimates.
+2. **An open estimate** can override any seeded value without touching the
+   library. Saving new rates never rewrites the estimate on screen — use
+   **Apply library to open estimate** to pull them in explicitly.
+3. **Saved revisions** are immutable. Each stores the library stamp that
+   produced it, so reopening revision 3 shows the rates it was priced with, and
+   the printed estimate carries that stamp.
+
+Rates seeded before any real data arrived are marked `placeholder`, and the
+count of unvalidated rates appears on the estimate itself. As quotes and job
+cost data arrive, the work is converting placeholders into `quoted` and
+`actual` values with real sources.
+
+Both `rates.json` and `rates_history.jsonl` are tracked by Git, so
+`git log -p rates.json` is a second, independent record of every rate change.
+
 ## Data and backups
 
 Saved revisions are stored in `data/msf_costing.db`. Back up that file while the
 application is stopped. The database and its temporary SQLite files are ignored
-by Git.
+by Git. The rate library (`rates.json`) and its change log
+(`rates_history.jsonl`) are tracked by Git and should be committed after a rate
+update.
+
+To run against a different library or database, use `--rates` and `--database`:
+
+```powershell
+python app.py --rates rates.json --database data/msf_costing.db
+```
 
 ## Automated tests
 
@@ -86,8 +135,9 @@ python -m unittest discover -v
 ```
 
 The test suite covers geometry, mutually exclusive frame costing, cost stages,
-installation crew-days, pricing, validation, SQLite revision history, and the
-HTTP API.
+installation crew-days, pricing, validation, SQLite revision history, the rate
+library (seeding, validation, change history, staleness, and recovery from a
+malformed file), and the HTTP API.
 
 ## Geometry-tool integration point
 
@@ -98,9 +148,10 @@ pricing logic, persistence, and GUI workflow.
 
 ## Prototype limitations
 
-Results are intentionally labeled ROM. The initial BK-1 reference cost is
-applied uniformly unless the user changes the size, beam, and complexity
-factors. Engineering, shop labor, field installation, and accessory inputs
+Results are intentionally labeled ROM. Every seeded rate ships at
+`placeholder` confidence, and the estimate reports how many remain unvalidated.
+The initial BK-1 reference cost is applied uniformly unless the user changes the
+size, beam, and complexity factors. Engineering, shop labor, field installation, and accessory inputs
 default to zero and therefore appear as explicit warnings rather than hidden
 assumptions. The fabric range changes raw membrane cost only; it is not a
 statistical confidence interval.

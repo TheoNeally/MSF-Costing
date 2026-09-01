@@ -18,8 +18,19 @@ def main() -> None:
         type=Path,
         help="Optional SQLite database path (defaults to data/msf_costing.db)",
     )
+    parser.add_argument(
+        "--rates",
+        type=Path,
+        help="Optional rate library path (defaults to rates.json)",
+    )
     args = parser.parse_args()
-    serve(args.host, args.port, not args.no_browser, database_path=args.database)
+    serve(
+        args.host,
+        args.port,
+        not args.no_browser,
+        database_path=args.database,
+        rates_path=args.rates,
+    )
 
 
 if __name__ == "__main__":

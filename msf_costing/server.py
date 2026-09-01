@@ -9,10 +9,17 @@ import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from . import __version__
 from .calculations import calculate_estimate, default_estimate
+from .rates import (
+    CATEGORIES,
+    CONFIDENCE_LABELS,
+    CONFIDENCE_LEVELS,
+    RateLibrary,
+    RateValidationError,
+)
 from .store import EstimateStore
 
 
@@ -56,7 +63,21 @@ class CostingRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "version": __version__})
             return
         if path == "/api/defaults":
-            self._send_json(default_estimate())
+            self._send_json(self.app.rates.apply_to(default_estimate()))
+            return
+        if path == "/api/rates":
+            self._send_json(self._rate_library_payload())
+            return
+        if path == "/api/rates/history":
+            query = parse_qs(urlparse(self.path).query)
+            rate_path = query.get("path", [None])[0]
+            try:
+                limit = int(query.get("limit", ["100"])[0])
+            except ValueError:
+                limit = 100
+            self._send_json(
+                {"history": self.app.rates.history(limit=limit, path=rate_path)}
+            )
             return
         if path == "/api/estimates":
             self._send_json({"estimates": self.app.store.list()})
@@ -103,6 +124,52 @@ class CostingRequestHandler(BaseHTTPRequestHandler):
             self.log_error("Unhandled request failure: %s", exc)
             self._send_json({"error": "Unexpected server error"}, 500)
 
+    def do_PUT(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        path = urlparse(self.path).path
+        try:
+            body = self._read_json()
+            if path == "/api/rates":
+                updates = body.get("updates")
+                if not isinstance(updates, dict):
+                    raise ValueError("updates must be an object")
+                changes = self.app.rates.update(
+                    updates,
+                    changed_by=str(body.get("changed_by") or ""),
+                    reason=str(body.get("reason") or ""),
+                )
+                payload = self._rate_library_payload()
+                payload["changes"] = changes
+                self._send_json(payload)
+                return
+            self._send_json({"error": "API route not found"}, 404)
+        except RateValidationError as exc:
+            self._send_json(
+                {"error": "Rate changes were rejected", "details": exc.details},
+                HTTPStatus.BAD_REQUEST,
+            )
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except OSError as exc:
+            self.log_error("Rate library write failed: %s", exc)
+            self._send_json({"error": "Could not write the rate library"}, 500)
+        except Exception as exc:
+            self.log_error("Unhandled request failure: %s", exc)
+            self._send_json({"error": "Unexpected server error"}, 500)
+
+    def _rate_library_payload(self) -> dict:
+        rates = self.app.rates
+        return {
+            "library": rates.stamp(),
+            "entries": rates.entries(),
+            "categories": list(CATEGORIES),
+            "confidence_levels": [
+                {"value": level, "label": CONFIDENCE_LABELS[level]}
+                for level in CONFIDENCE_LEVELS
+            ],
+            "path": str(rates.path),
+            "load_error": rates.load_error,
+        }
+
     def _serve_static(self, request_path: str) -> None:
         relative = "index.html" if request_path in ("", "/") else unquote(request_path[1:])
         candidate = (self.app.static_root / relative).resolve()
@@ -134,9 +201,11 @@ class CostingServer(ThreadingHTTPServer):
         address: tuple[str, int],
         static_root: Path,
         store: EstimateStore,
+        rates: RateLibrary,
     ) -> None:
         self.static_root = static_root.resolve()
         self.store = store
+        self.rates = rates
         super().__init__(address, CostingRequestHandler)
 
 
@@ -146,13 +215,18 @@ def serve(
     open_browser: bool = True,
     root: Path | None = None,
     database_path: Path | None = None,
+    rates_path: Path | None = None,
 ) -> None:
     project_root = root or Path(__file__).resolve().parent.parent
     static_root = project_root / "static"
     store = EstimateStore(database_path or project_root / "data" / "msf_costing.db")
-    server = CostingServer((host, port), static_root, store)
+    rates = RateLibrary.load(rates_path or project_root / "rates.json")
+    server = CostingServer((host, port), static_root, store, rates)
     url = f"http://{host}:{server.server_port}"
     print(f"MSF Costing Tool {__version__} running at {url}")
+    print(f"Rate library: {rates.path} ({rates.stamp()['label']})")
+    if rates.load_error:
+        print(f"WARNING: {rates.load_error}")
     print("Press Ctrl+C to stop.")
     if open_browser:
         threading.Timer(0.7, lambda: webbrowser.open(url)).start()

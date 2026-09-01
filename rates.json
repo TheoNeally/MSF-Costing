@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "library_version": 1,
+  "updated_at": "2026-01-01T00:00:00+00:00",
+  "rates": {
+    "frame.panel_set_cost": {
+      "value": 1150.0,
+      "effective_date": "2026-01-01",
+      "source": "BK-1 prototype frame set, internal build reference",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.beam_set_cost": {
+      "value": 260.0,
+      "effective_date": "2026-01-01",
+      "source": "Prototype beam set reference",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.beam_sets_per_panel": {
+      "value": 3.0,
+      "effective_date": "2026-01-01",
+      "source": "Three beams per triangular panel, nominal",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.fittings_per_panel": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.hardware_per_panel": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.fabrication_per_panel": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.setup_cost_per_unique": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.size_factor": {
+      "value": 1.0,
+      "effective_date": "2026-01-01",
+      "source": "Neutral until size-driven cost data exists",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.beam_factor": {
+      "value": 1.0,
+      "effective_date": "2026-01-01",
+      "source": "Neutral until beam-section cost data exists",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "frame.complexity_factor": {
+      "value": 1.0,
+      "effective_date": "2026-01-01",
+      "source": "Neutral until quasi-random fabrication data exists",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.fabric_rate_low": {
+      "value": 4.0,
+      "effective_date": "2026-01-01",
+      "source": "Prototype fabric range, low end of supplier indications",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.fabric_rate_base": {
+      "value": 8.0,
+      "effective_date": "2026-01-01",
+      "source": "Prototype fabric range, midpoint of supplier indications",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.fabric_rate_high": {
+      "value": 12.0,
+      "effective_date": "2026-01-01",
+      "source": "Prototype fabric range, high end of supplier indications",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.waste_pct": {
+      "value": 10.0,
+      "effective_date": "2026-01-01",
+      "source": "Nominal 10% cutting allowance pending real nesting data",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.faceting_factor": {
+      "value": 1.0,
+      "effective_date": "2026-01-01",
+      "source": "Neutral until faceted panel areas are measured",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "membrane.fabrication_per_panel": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.engineering_rate": {
+      "value": 100.0,
+      "effective_date": "2026-01-01",
+      "source": "Planning placeholder pending payroll and burden data",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.engineering_base_hours": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.engineering_hours_per_unique": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.shop_rate": {
+      "value": 60.0,
+      "effective_date": "2026-01-01",
+      "source": "Planning placeholder pending payroll and burden data",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.shop_hours_per_panel": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.shop_setup_hours_per_unique": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.field_rate": {
+      "value": 85.0,
+      "effective_date": "2026-01-01",
+      "source": "Planning placeholder pending field payroll data",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.crew_size": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.panels_per_day": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.hours_per_day": {
+      "value": 8.0,
+      "effective_date": "2026-01-01",
+      "source": "Standard eight-hour field day",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.equipment_per_day": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.mobilization": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.travel_fixed": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "labor.per_diem": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "other.packaging_freight": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "other.project_management": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "other.overhead_pct": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "other.warranty_pct": {
+      "value": 0.0,
+      "effective_date": "2026-01-01",
+      "source": "Not yet quantified; zero keeps the exclusion visible in estimate warnings",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "other.contingency_pct": {
+      "value": 15.0,
+      "effective_date": "2026-01-01",
+      "source": "Prototype ROM contingency pending estimate-accuracy history",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    },
+    "pricing.target_margin_pct": {
+      "value": 30.0,
+      "effective_date": "2026-01-01",
+      "source": "Management target pending program-level margin policy",
+      "confidence": "placeholder",
+      "review_by": "",
+      "note": ""
+    }
+  }
+}

@@ -3,7 +3,12 @@
 const form = document.querySelector("#estimate-form");
 const accessoryList = document.querySelector("#accessory-list");
 const loadDialog = document.querySelector("#load-dialog");
+const ratesDialog = document.querySelector("#rates-dialog");
 let defaults = null;
+let rateLibrary = null;
+let rateEntries = [];
+let rateData = null;
+let activeRateStamp = null;
 let currentResults = null;
 let projectId = null;
 let revision = null;
@@ -48,6 +53,7 @@ function readForm() {
     quantity: Number(row.querySelector('[data-accessory="quantity"]').value || 0),
     unit_cost: Number(row.querySelector('[data-accessory="unit_cost"]').value || 0),
   }));
+  payload.rate_library = activeRateStamp ? clone(activeRateStamp) : null;
   return payload;
 }
 
@@ -248,7 +254,9 @@ async function loadEstimate(id) {
   }
   projectId = record.project_id;
   revision = record.revision;
+  activeRateStamp = record.payload.rate_library || null;
   writeForm(record.payload);
+  renderRateStamp();
   currentResults = record.results;
   renderResults(record.results);
   document.querySelector("#save-status").textContent = `Revision ${revision} opened`;
@@ -265,7 +273,9 @@ function newEstimate() {
   if (!window.confirm("Start a new estimate? Unsaved changes will be discarded.")) return;
   projectId = null;
   revision = null;
+  activeRateStamp = rateLibrary ? clone(rateLibrary) : defaults.rate_library || null;
   writeForm(defaults);
+  renderRateStamp();
   document.querySelector("#save-status").textContent = "New estimate";
   calculate();
 }
@@ -278,12 +288,265 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
+function rateAttention(entry) {
+  return entry.unvalidated || entry.stale;
+}
+
+function renderRateStamp() {
+  const element = document.querySelector("#rate-stamp");
+  const stamp = activeRateStamp;
+  if (!stamp) {
+    element.textContent = "No rate library stamp on this estimate.";
+    element.className = "rate-stamp";
+    return;
+  }
+  const parts = [`Rates v${stamp.version}`, `newest ${stamp.newest_effective_date}`];
+  if (stamp.unvalidated) parts.push(`${stamp.unvalidated} unvalidated`);
+  if (stamp.stale) parts.push(`${stamp.stale} overdue`);
+  const behind = rateLibrary && rateLibrary.version !== stamp.version;
+  if (behind) parts.push(`library v${rateLibrary.version} available`);
+  element.textContent = parts.join(" · ");
+  element.className = `rate-stamp${stamp.unvalidated || stamp.stale ? " caution" : ""}${behind ? " behind" : ""}`;
+}
+
+async function refreshRateLibrary() {
+  const response = await fetch("/api/rates");
+  const data = await response.json();
+  rateData = data;
+  rateLibrary = data.library;
+  rateEntries = data.entries;
+  renderRates();
+  return data;
+}
+
+function renderRates() {
+  const data = rateData;
+  if (!data) return;
+  const notice = document.querySelector("#rates-notice");
+  notice.innerHTML = data.load_error
+    ? `<div class="message warning">${escapeHtml(data.load_error)}</div>`
+    : "";
+  const stamp = data.library;
+  document.querySelector("#rates-summary").textContent =
+    `Version ${stamp.version} · ${stamp.total} rates · newest effective ${stamp.newest_effective_date} · ` +
+    `${stamp.unvalidated} unvalidated · ${stamp.stale} past review date`;
+
+  const attentionOnly = document.querySelector("#rates-attention-only").checked;
+  const confidenceOptions = data.confidence_levels;
+  const body = document.querySelector("#rates-body");
+  const groups = data.categories
+    .map((category) => {
+      const entries = data.entries.filter(
+        (entry) => entry.category === category && (!attentionOnly || rateAttention(entry)),
+      );
+      if (!entries.length) return "";
+      return `<section class="rate-group"><h3>${escapeHtml(category)}</h3>${entries
+        .map((entry) => rateRowMarkup(entry, confidenceOptions))
+        .join("")}</section>`;
+    })
+    .join("");
+  body.innerHTML = groups || '<div class="empty-state">No rates match this filter.</div>';
+
+  body.querySelectorAll(".rate-row").forEach((row) => {
+    const path = row.dataset.ratePath;
+    const entry = data.entries.find((item) => item.path === path);
+    row.querySelector('[data-rate="confidence"]').value = entry.confidence;
+    row.querySelectorAll("input, select, textarea").forEach((control) => {
+      control.addEventListener("input", updateRateDirtyState);
+      control.addEventListener("change", updateRateDirtyState);
+    });
+  });
+  updateRateDirtyState();
+}
+
+function rateRowMarkup(entry, confidenceOptions) {
+  const badges = [
+    entry.unvalidated ? '<span class="badge badge-caution">Unvalidated</span>' : "",
+    entry.stale ? '<span class="badge badge-warn">Review overdue</span>' : "",
+    entry.at_seed_value ? '<span class="badge badge-quiet">Seed value</span>' : "",
+  ].join("");
+  const options = confidenceOptions
+    .map((option) => `<option value="${escapeAttribute(option.value)}">${escapeHtml(option.label)}</option>`)
+    .join("");
+  const maximum = entry.maximum === null ? "" : `max="${entry.maximum}"`;
+  return `
+    <div class="rate-row" data-rate-path="${escapeAttribute(entry.path)}">
+      <div class="rate-head">
+        <div class="rate-identity">
+          <strong>${escapeHtml(entry.label)}</strong>
+          <small>${escapeHtml(entry.unit)}${entry.help ? ` · ${escapeHtml(entry.help)}` : ""}</small>
+        </div>
+        <div class="rate-badges">${badges}</div>
+      </div>
+      <div class="rate-fields">
+        <label class="field"><span>Value</span>
+          <input data-rate="value" type="number" step="${entry.step}" min="${entry.minimum}" ${maximum} value="${entry.value}"></label>
+        <label class="field"><span>Confidence</span>
+          <select data-rate="confidence">${options}</select></label>
+        <label class="field"><span>Effective</span>
+          <input data-rate="effective_date" type="date" value="${escapeAttribute(entry.effective_date)}"></label>
+        <label class="field"><span>Review by</span>
+          <input data-rate="review_by" type="date" value="${escapeAttribute(entry.review_by)}"></label>
+        <label class="field field-wide"><span>Source</span>
+          <input data-rate="source" type="text" placeholder="Quote number, vendor, job number, or data set" value="${escapeAttribute(entry.source)}"></label>
+        <label class="field field-wide"><span>Note</span>
+          <input data-rate="note" type="text" placeholder="Scope, exclusions, validity window" value="${escapeAttribute(entry.note)}"></label>
+      </div>
+    </div>`;
+}
+
+function collectRateUpdates() {
+  const updates = {};
+  document.querySelectorAll("#rates-body .rate-row").forEach((row) => {
+    const path = row.dataset.ratePath;
+    const entry = rateEntries.find((item) => item.path === path);
+    if (!entry) return;
+    const proposed = {
+      value: Number(row.querySelector('[data-rate="value"]').value || 0),
+      confidence: row.querySelector('[data-rate="confidence"]').value,
+      effective_date: row.querySelector('[data-rate="effective_date"]').value,
+      review_by: row.querySelector('[data-rate="review_by"]').value,
+      source: row.querySelector('[data-rate="source"]').value.trim(),
+      note: row.querySelector('[data-rate="note"]').value.trim(),
+    };
+    const changed =
+      proposed.value !== entry.value ||
+      proposed.confidence !== entry.confidence ||
+      proposed.effective_date !== entry.effective_date ||
+      proposed.review_by !== (entry.review_by || "") ||
+      proposed.source !== entry.source ||
+      proposed.note !== (entry.note || "");
+    row.classList.toggle("dirty", changed);
+    if (changed) updates[path] = proposed;
+  });
+  return updates;
+}
+
+function updateRateDirtyState() {
+  const count = Object.keys(collectRateUpdates()).length;
+  document.querySelector("#rates-dirty").textContent = count
+    ? `${count} unsaved rate change${count === 1 ? "" : "s"}`
+    : "No unsaved rate changes";
+}
+
+async function openRates() {
+  document.querySelector("#rates-history-panel").hidden = true;
+  await refreshRateLibrary();
+  ratesDialog.showModal();
+}
+
+async function saveRates() {
+  const updates = collectRateUpdates();
+  const notice = document.querySelector("#rates-notice");
+  if (!Object.keys(updates).length) {
+    showToast("No rate changes to save.");
+    return;
+  }
+  const button = document.querySelector("#rates-save");
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/rates", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        updates,
+        changed_by: document.querySelector("#rates-changed-by").value.trim(),
+        reason: document.querySelector("#rates-reason").value.trim(),
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const details = data.details || [data.error || "The rate change was rejected."];
+      notice.innerHTML = details
+        .map((message) => `<div class="message error">${escapeHtml(message)}</div>`)
+        .join("");
+      return;
+    }
+    rateData = data;
+    rateLibrary = data.library;
+    rateEntries = data.entries;
+    renderRates();
+    document.querySelector("#rates-reason").value = "";
+    const refreshed = await fetch("/api/defaults");
+    defaults = await refreshed.json();
+    renderRateStamp();
+    showToast(
+      `Saved ${data.changes.length} rate change${data.changes.length === 1 ? "" : "s"} as library v${data.library.version}. The open estimate keeps its values.`,
+    );
+  } catch (error) {
+    notice.innerHTML = '<div class="message error">Could not save the rate library.</div>';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function applyLibraryToEstimate() {
+  const changed = rateEntries.filter((entry) => {
+    const control = form.querySelector(`[data-path="${entry.path}"]`);
+    return control && Number(control.value) !== entry.value;
+  });
+  if (!changed.length) {
+    showToast("The open estimate already matches the library.");
+    return;
+  }
+  const preview = changed
+    .slice(0, 6)
+    .map((entry) => `• ${entry.label}: ${entry.value}`)
+    .join("\n");
+  const suffix = changed.length > 6 ? `\n…and ${changed.length - 6} more` : "";
+  if (!window.confirm(`Overwrite ${changed.length} value(s) in the open estimate?\n\n${preview}${suffix}`)) {
+    return;
+  }
+  changed.forEach((entry) => {
+    const control = form.querySelector(`[data-path="${entry.path}"]`);
+    if (control) control.value = entry.value;
+  });
+  activeRateStamp = clone(rateLibrary);
+  renderRateStamp();
+  ratesDialog.close();
+  scheduleCalculate();
+  showToast(`Applied library v${rateLibrary.version} to the open estimate.`);
+}
+
+async function toggleRateHistory() {
+  const panel = document.querySelector("#rates-history-panel");
+  if (!panel.hidden) {
+    panel.hidden = true;
+    return;
+  }
+  const response = await fetch("/api/rates/history?limit=100");
+  const data = await response.json();
+  const records = data.history || [];
+  panel.innerHTML = records.length
+    ? `<h3>Change log</h3>${records
+        .map(
+          (record) => `
+      <div class="history-row">
+        <div><strong>${escapeHtml(record.label || record.path)}</strong>
+          <small>${escapeHtml(String(record.previous_value))} → ${escapeHtml(String(record.value))} ${escapeHtml(record.unit || "")}</small></div>
+        <div class="history-meta">
+          <span>v${escapeHtml(String(record.library_version))} · ${formatDate(record.timestamp)}</span>
+          <span>${escapeHtml(record.previous_confidence || "")} → ${escapeHtml(record.confidence || "")}${record.changed_by ? ` · ${escapeHtml(record.changed_by)}` : ""}</span>
+          ${record.source ? `<span>${escapeHtml(record.source)}</span>` : ""}
+          ${record.reason ? `<span>${escapeHtml(record.reason)}</span>` : ""}
+        </div>
+      </div>`,
+        )
+        .join("")}`
+    : '<h3>Change log</h3><div class="empty-state">No rate changes recorded yet.</div>';
+  panel.hidden = false;
+}
+
 async function initialize() {
   try {
     const response = await fetch("/api/defaults");
     defaults = await response.json();
+    activeRateStamp = defaults.rate_library || null;
     writeForm(defaults);
+    renderRateStamp();
     await calculate();
+    await refreshRateLibrary();
+    renderRateStamp();
   } catch (error) {
     renderMessages(["The local calculation service is unavailable."], []);
   }
@@ -297,6 +560,13 @@ document.querySelector("#load-button").addEventListener("click", openSavedEstima
 document.querySelector("#new-button").addEventListener("click", newEstimate);
 document.querySelector("#print-button").addEventListener("click", () => window.print());
 document.querySelector("#close-dialog").addEventListener("click", () => loadDialog.close());
+document.querySelector("#rates-button").addEventListener("click", openRates);
+document.querySelector("#close-rates").addEventListener("click", () => ratesDialog.close());
+document.querySelector("#rates-save").addEventListener("click", saveRates);
+document.querySelector("#rates-apply").addEventListener("click", applyLibraryToEstimate);
+document.querySelector("#rates-history-button").addEventListener("click", toggleRateHistory);
+document.querySelector("#rates-attention-only").addEventListener("change", renderRates);
+ratesDialog.addEventListener("click", (event) => { if (event.target === ratesDialog) ratesDialog.close(); });
 loadDialog.addEventListener("click", (event) => { if (event.target === loadDialog) loadDialog.close(); });
 
 initialize();
