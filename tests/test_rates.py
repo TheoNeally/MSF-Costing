@@ -32,6 +32,21 @@ class RateLibraryTests(unittest.TestCase):
         stored = json.loads(self.path.read_text(encoding="utf-8"))
         self.assertEqual(len(stored["rates"]), len(RATE_FIELDS))
 
+    def test_seeds_into_a_missing_directory(self) -> None:
+        nested = Path(self.temp_directory.name) / "data" / "rates.json"
+        self.assertFalse(nested.parent.exists())
+
+        library = RateLibrary.load(nested)
+        self.assertTrue(nested.exists())
+        self.assertEqual(library.version, 1)
+        self.assertEqual(library.history_path, nested.parent / "rates_history.jsonl")
+
+        library.update(
+            {"labor.per_diem": {"value": 165, "confidence": "quoted", "source": "GSA rate"}}
+        )
+        self.assertTrue(library.history_path.exists())
+        self.assertEqual(library.history()[0]["value"], 165.0)
+
     def test_seed_values_match_the_engine_defaults(self) -> None:
         estimate = default_estimate()
         for path, value in self.library.values().items():

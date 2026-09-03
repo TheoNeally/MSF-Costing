@@ -220,7 +220,7 @@ def serve(
     project_root = root or Path(__file__).resolve().parent.parent
     static_root = project_root / "static"
     store = EstimateStore(database_path or project_root / "data" / "msf_costing.db")
-    rates = RateLibrary.load(rates_path or project_root / "rates.json")
+    rates = RateLibrary.load(rates_path or project_root / "data" / "rates.json")
     server = CostingServer((host, port), static_root, store, rates)
     url = f"http://{host}:{server.server_port}"
     print(f"MSF Costing Tool {__version__} running at {url}")

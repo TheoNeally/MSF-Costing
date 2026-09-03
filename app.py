@@ -21,7 +21,7 @@ def main() -> None:
     parser.add_argument(
         "--rates",
         type=Path,
-        help="Optional rate library path (defaults to rates.json)",
+        help="Optional rate library path (defaults to data/rates.json)",
     )
     args = parser.parse_args()
     serve(

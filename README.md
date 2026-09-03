@@ -78,8 +78,8 @@ keeps the build-up transparent and avoids compounding hidden percentages.
 ## Rate library
 
 Every price, rate, factor, and percentage the tool starts from lives in
-`rates.json` at the project root, not in the calculation code. Each of the 36
-managed rates carries its own provenance:
+`data/rates.json`, not in the calculation code. Each of the 36 managed rates
+carries its own provenance:
 
 | Field | Meaning |
 | --- | --- |
@@ -91,9 +91,9 @@ managed rates carries its own provenance:
 | `note` | Scope, exclusions, or validity window |
 
 Open the library with the **Rates** button. Editing a value there writes
-`rates.json`, increments the library version, and appends one record per
-changed rate to `rates_history.jsonl`, so "when did $8/ft² become $9.40, and
-why" stays answerable. A source is required whenever confidence is anything
+`data/rates.json`, increments the library version, and appends one record per
+changed rate to `data/rates_history.jsonl`, so "when did $8/ft² become $9.40,
+and why" stays answerable. A source is required whenever confidence is anything
 other than `placeholder`; a rejected batch leaves every rate untouched.
 
 Three layers stay deliberately separate:
@@ -111,21 +111,22 @@ count of unvalidated rates appears on the estimate itself. As quotes and job
 cost data arrive, the work is converting placeholders into `quoted` and
 `actual` values with real sources.
 
-Both `rates.json` and `rates_history.jsonl` are tracked by Git, so
-`git log -p rates.json` is a second, independent record of every rate change.
+Both files sit alongside the estimate database in `data/` but, unlike the
+database, are tracked by Git, so `git log -p data/rates.json` is a second,
+independent record of every rate change.
 
 ## Data and backups
 
 Saved revisions are stored in `data/msf_costing.db`. Back up that file while the
 application is stopped. The database and its temporary SQLite files are ignored
-by Git. The rate library (`rates.json`) and its change log
-(`rates_history.jsonl`) are tracked by Git and should be committed after a rate
-update.
+by Git. The rate library (`data/rates.json`) and its change log
+(`data/rates_history.jsonl`) live in the same directory but are tracked by Git,
+and should be committed after a rate update.
 
 To run against a different library or database, use `--rates` and `--database`:
 
 ```powershell
-python app.py --rates rates.json --database data/msf_costing.db
+python app.py --rates data/rates.json --database data/msf_costing.db
 ```
 
 ## Automated tests
