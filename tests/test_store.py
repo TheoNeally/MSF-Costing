@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from msf_costing.calculations import calculate_estimate, default_estimate
-from msf_costing.store import EstimateStore
+from src.calculations import calculate_estimate, default_estimate
+from src.store import EstimateStore
 
 
 class StoreTests(unittest.TestCase):

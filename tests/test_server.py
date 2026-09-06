@@ -7,9 +7,9 @@ import unittest
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-from msf_costing.calculations import default_estimate
-from msf_costing.server import CostingServer
-from msf_costing.store import EstimateStore
+from src.calculations import default_estimate
+from src.server import CostingServer
+from src.store import EstimateStore
 
 
 class ServerTests(unittest.TestCase):

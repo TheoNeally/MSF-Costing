@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from msf_costing.server import serve
+from src.server import serve
 
 
 def main() -> None:

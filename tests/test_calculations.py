@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import unittest
 
-from msf_costing.calculations import calculate_estimate, default_estimate
+from src.calculations import calculate_estimate, default_estimate
 
 
 class GeometryTests(unittest.TestCase):
